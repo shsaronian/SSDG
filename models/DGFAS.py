@@ -1,11 +1,9 @@
 import torch
 import torch.nn as nn
 from torchvision.models.resnet import ResNet, BasicBlock
-import sys
 import numpy as np
 from torch.autograd import Variable
-import random
-import os
+
 
 def l2_norm(input, axis=1):
     norm = torch.norm(input, 2, axis, True)
@@ -136,7 +134,7 @@ def resnet18(pretrained=False, **kwargs):
     """
     model = ResNet(BasicBlock, [2, 2, 2, 2], **kwargs)
     # change your path
-    model_path = '/home/jiayunpei/SSDG_github/pretrained_model/resnet18-5c106cde.pth'
+    model_path = 'resnet18-5c106cde.pth'
     if pretrained:
         model.load_state_dict(torch.load(model_path))
         print("loading model: ", model_path)
@@ -227,7 +225,8 @@ class Discriminator(nn.Module):
         self.fc1 = nn.Linear(512, 512)
         self.fc1.weight.data.normal_(0, 0.01)
         self.fc1.bias.data.fill_(0.0)
-        self.fc2 = nn.Linear(512, 3)
+        #self.fc2 = nn.Linear(512, 3)
+        self.fc2 = nn.Linear(512, 6)
         self.fc2.weight.data.normal_(0, 0.3)
         self.fc2.bias.data.fill_(0.0)
         self.ad_net = nn.Sequential(
@@ -239,7 +238,8 @@ class Discriminator(nn.Module):
         self.grl_layer = GRL()
 
     def forward(self, feature):
-        adversarial_out = self.ad_net(self.grl_layer(feature))
+        #adversarial_out = self.ad_net(self.grl_layer(feature))
+        adversarial_out = self.ad_net(self.grl_layer.forward(feature))
         return adversarial_out
 
 class DG_model(nn.Module):

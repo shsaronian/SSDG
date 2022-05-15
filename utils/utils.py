@@ -1,10 +1,12 @@
 import json
-import math
+import numpy as np
 import pandas as pd
 import torch
 import os
 import sys
 import shutil
+import matplotlib.pyplot as plt
+
 
 def adjust_learning_rate(optimizer, epoch, init_param_lr, lr_epoch_1, lr_epoch_2):
     i = 0
@@ -18,7 +20,6 @@ def adjust_learning_rate(optimizer, epoch, init_param_lr, lr_epoch_1, lr_epoch_2
         else:
             param_group['lr'] = init_lr * 0.1 ** 2
 
-import matplotlib.pyplot as plt
 def draw_roc(frr_list, far_list, roc_auc):
     plt.switch_backend('agg')
     plt.rcParams['figure.figsize'] = (6.0, 6.0)
@@ -41,76 +42,40 @@ def draw_roc(frr_list, far_list, roc_auc):
     save_json.append(dict)
     json.dump(save_json, file, indent=4)
 
-def sample_frames(flag, num_frames, dataset_name):
-    '''
-        from every video (frames) to sample num_frames to test
-        return: the choosen frames' path and label
-    '''
-    # The process is a litter cumbersome, you can change to your way for convenience
-    root_path = '../../data_label/' + dataset_name
-    if(flag == 0): # select the fake images
-        label_path = root_path + '/fake_label.json'
-        save_label_path = root_path + '/choose_fake_label.json'
-    elif(flag == 1): # select the real images
-        label_path = root_path + '/real_label.json'
-        save_label_path = root_path + '/choose_real_label.json'
-    else: # select all the real and fake images
-        label_path = root_path + '/all_label.json'
-        save_label_path = root_path + '/choose_all_label.json'
+def load_files(path):
+    features = []
+    labels = []
+    for file_name in os.listdir(path):
+        if 'dataset_' in file_name:
+            file = np.load(os.path.join(path, file_name), allow_pickle=True)
+            data = file[:, 1]
+            label = file[:, 0]
+            #if key == 'mobile_distance':
+            #    data = data[np.where(label == 1)]
+            #    label = label[np.where(label == 1)]
+            features.extend(data)
+            labels.extend(label)
+    temp_array = list(zip(features, labels))
+    features, labels = zip(*temp_array)
+    return features, labels
 
-    all_label_json = json.load(open(label_path, 'r'))
-    f_sample = open(save_label_path, 'w')
-    length = len(all_label_json)
-    # three componets: frame_prefix, frame_num, png
-    saved_frame_prefix = '/'.join(all_label_json[0]['photo_path'].split('/')[:-1])
-    final_json = []
-    video_number = 0
-    single_video_frame_list = []
-    single_video_frame_num = 0
-    single_video_label = 0
-    for i in range(length):
-        photo_path = all_label_json[i]['photo_path']
-        photo_label = all_label_json[i]['photo_label']
-        frame_prefix = '/'.join(photo_path.split('/')[:-1])
-        # the last frame
-        if (i == length - 1):
-            photo_frame = int(photo_path.split('/')[-1].split('.')[0])
-            single_video_frame_list.append(photo_frame)
-            single_video_frame_num += 1
-            single_video_label = photo_label
-        # a new video, so process the saved one
-        if (frame_prefix != saved_frame_prefix or i == length - 1):
-            # [1, 2, 3, 4,.....]
-            single_video_frame_list.sort()
-            frame_interval = math.floor(single_video_frame_num / num_frames)
-            for j in range(num_frames):
-                dict = {}
-                dict['photo_path'] = saved_frame_prefix + '/' + str(
-                    single_video_frame_list[6 + j * frame_interval]) + '.png'
-                dict['photo_label'] = single_video_label
-                dict['photo_belong_to_video_ID'] = video_number
-                final_json.append(dict)
-            video_number += 1
-            saved_frame_prefix = frame_prefix
-            single_video_frame_list.clear()
-            single_video_frame_num = 0
-        # get every frame information
-        photo_frame = int(photo_path.split('/')[-1].split('.')[0])
-        single_video_frame_list.append(photo_frame)
-        single_video_frame_num += 1
-        single_video_label = photo_label
-    if(flag == 0):
-        print("Total video number(fake): ", video_number, dataset_name)
-    elif(flag == 1):
-        print("Total video number(real): ", video_number, dataset_name)
-    else:
-        print("Total video number(target): ", video_number, dataset_name)
-    json.dump(final_json, f_sample, indent=4)
-    f_sample.close()
+def split_fake_real(features, labels):
+    df = pd.DataFrame(list(zip(features, labels)), columns=['features', 'labels'])
 
-    f_json = open(save_label_path)
-    sample_data_pd = pd.read_json(f_json)
-    return sample_data_pd
+    df_negative = df[df['labels'] == 0].copy()
+    df_positive = df[df['labels'] == 1].copy()
+
+    features_fake = df_negative['features'].tolist()
+    features_real = df_positive['features'].tolist()
+
+    labels_fake = df_negative['labels'].tolist()
+    labels_real = df_positive['labels'].tolist()
+
+    real = [features_real, labels_real]
+    fake = [features_fake, labels_fake]
+
+    return real, fake
+
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -195,10 +160,15 @@ class Logger(object):
 def save_checkpoint(save_list, is_best, model, gpus, checkpoint_path, best_model_path, filename='_checkpoint.pth.tar'):
     epoch = save_list[0]
     valid_args = save_list[1]
-    best_model_HTER = round(save_list[2], 5)
-    best_model_ACC = save_list[3]
-    best_model_ACER = save_list[4]
-    threshold = save_list[5]
+    best_model_ACER = save_list[2]
+    best_model_EER = save_list[3]
+    best_model_HTER = round(save_list[4], 5)
+    best_model_AUC = save_list[5]
+    best_model_ACC = save_list[6]
+    best_model_recall = save_list[7]
+    best_model_precision = save_list[8]
+    best_model_fscore = save_list[9]
+
     if(len(gpus) > 1):
         old_state_dict = model.state_dict()
         from collections import OrderedDict
@@ -212,20 +182,28 @@ def save_checkpoint(save_list, is_best, model, gpus, checkpoint_path, best_model
             "epoch": epoch,
             "state_dict": new_state_dict,
             "valid_arg": valid_args,
-            "best_model_EER": best_model_HTER,
             "best_model_ACER": best_model_ACER,
+            "best_model_EER": best_model_EER,
+            "best_model_HTER": best_model_HTER,
+            "best_model_AUC": best_model_AUC,
             "best_model_ACC": best_model_ACC,
-            "threshold": threshold
+            "best_model_recall": best_model_recall,
+            "best_model_precision": best_model_precision,
+            "best_model_fscore": best_model_fscore
         }
     else:
         state = {
             "epoch": epoch,
             "state_dict": model.state_dict(),
             "valid_arg": valid_args,
-            "best_model_EER": best_model_HTER,
             "best_model_ACER": best_model_ACER,
+            "best_model_EER": best_model_EER,
+            "best_model_HTER": best_model_HTER,
+            "best_model_AUC": best_model_AUC,
             "best_model_ACC": best_model_ACC,
-            "threshold": threshold
+            "best_model_recall": best_model_recall,
+            "best_model_precision": best_model_precision,
+            "best_model_fscore": best_model_fscore
         }
     filepath = checkpoint_path + filename
     torch.save(state, filepath)

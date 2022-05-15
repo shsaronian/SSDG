@@ -1,14 +1,13 @@
-import torch
 from torchvision import transforms as T
 from torch.utils.data import Dataset
 from PIL import Image
 
-class YunpeiDataset(Dataset):
-    def __init__(self, data_pd, transforms=None, train=True):
+class SSDGDataset(Dataset):
+    def __init__(self, data, transforms=None, train=True):
         self.train = train
-        self.photo_path = data_pd['photo_path'].tolist()
-        self.photo_label = data_pd['photo_label'].tolist()
-        self.photo_belong_to_video_ID = data_pd['photo_belong_to_video_ID'].tolist()
+        self.features = data[0]
+        self.labels = data[1]
+
         if transforms is None:
             if not train:
                 self.transforms = T.Compose([
@@ -27,19 +26,11 @@ class YunpeiDataset(Dataset):
             self.transforms = transforms
 
     def __len__(self):
-        return len(self.photo_path)
+        return len(self.features)
 
-    def __getitem__(self, item):
-        if self.train:
-            img_path = self.photo_path[item]
-            label = self.photo_label[item]
-            img = Image.open(img_path)
-            img = self.transforms(img)
-            return img, label
-        else:
-            img_path = self.photo_path[item]
-            label = self.photo_label[item]
-            videoID = self.photo_belong_to_video_ID[item]
-            img = Image.open(img_path)
-            img = self.transforms(img)
-            return img, label, videoID
+    def __getitem__(self, idx):
+        img = self.features[idx]
+        img = Image.fromarray(img)
+        img = self.transforms(img)
+        label = self.labels[idx]
+        return img, label
