@@ -5,6 +5,7 @@ import torch
 import os
 import sys
 import shutil
+import random
 import matplotlib.pyplot as plt
 
 
@@ -56,6 +57,7 @@ def load_files(path):
             features.extend(data)
             labels.extend(label)
     temp_array = list(zip(features, labels))
+    random.Random(0).shuffle(temp_array)
     features, labels = zip(*temp_array)
     return features, labels
 
@@ -157,17 +159,18 @@ class Logger(object):
         # you might want to specify some extra behavior here.
         pass
 
-def save_checkpoint(save_list, is_best, model, gpus, checkpoint_path, best_model_path, filename='_checkpoint.pth.tar'):
+def save_checkpoint(save_list, model, gpus, checkpoint_path, model_path, filename='_checkpoint.pth.tar'):
     epoch = save_list[0]
     valid_args = save_list[1]
-    best_model_ACER = save_list[2]
-    best_model_EER = save_list[3]
-    best_model_HTER = round(save_list[4], 5)
-    best_model_AUC = save_list[5]
-    best_model_ACC = save_list[6]
-    best_model_recall = save_list[7]
-    best_model_precision = save_list[8]
-    best_model_fscore = save_list[9]
+    valid_model_ACER = valid_args[0]
+    valid_model_EER = valid_args[1]
+    valid_model_HTER = round(valid_args[2], 5)
+    valid_model_AUC = valid_args[3]
+    valid_model_ACC = valid_args[4]
+    valid_model_recall = valid_args[5]
+    valid_model_precision = valid_args[6]
+    valid_model_fscore = valid_args[7]
+    valid_model_conf_matrix = valid_args[8]
 
     if(len(gpus) > 1):
         old_state_dict = model.state_dict()
@@ -182,34 +185,37 @@ def save_checkpoint(save_list, is_best, model, gpus, checkpoint_path, best_model
             "epoch": epoch,
             "state_dict": new_state_dict,
             "valid_arg": valid_args,
-            "best_model_ACER": best_model_ACER,
-            "best_model_EER": best_model_EER,
-            "best_model_HTER": best_model_HTER,
-            "best_model_AUC": best_model_AUC,
-            "best_model_ACC": best_model_ACC,
-            "best_model_recall": best_model_recall,
-            "best_model_precision": best_model_precision,
-            "best_model_fscore": best_model_fscore
+            "valid_model_ACER": valid_model_ACER,
+            "valid_model_EER": valid_model_EER,
+            "valid_model_HTER": valid_model_HTER,
+            "valid_model_AUC": valid_model_AUC,
+            "valid_model_ACC": valid_model_ACC,
+            "valid_model_recall": valid_model_recall,
+            "valid_model_precision": valid_model_precision,
+            "valid_model_fscore": valid_model_fscore,
+            "valid_model_conf_matrix": valid_model_conf_matrix
         }
     else:
         state = {
             "epoch": epoch,
             "state_dict": model.state_dict(),
             "valid_arg": valid_args,
-            "best_model_ACER": best_model_ACER,
-            "best_model_EER": best_model_EER,
-            "best_model_HTER": best_model_HTER,
-            "best_model_AUC": best_model_AUC,
-            "best_model_ACC": best_model_ACC,
-            "best_model_recall": best_model_recall,
-            "best_model_precision": best_model_precision,
-            "best_model_fscore": best_model_fscore
+            "valid_model_ACER": valid_model_ACER,
+            "valid_model_EER": valid_model_EER,
+            "valid_model_HTER": valid_model_HTER,
+            "valid_model_AUC": valid_model_AUC,
+            "valid_model_ACC": valid_model_ACC,
+            "valid_model_recall": valid_model_recall,
+            "valid_model_precision": valid_model_precision,
+            "valid_model_fscore": valid_model_fscore,
+            "valid_model_conf_matrix": valid_model_conf_matrix
         }
     filepath = checkpoint_path + filename
     torch.save(state, filepath)
+    shutil.copy(filepath, model_path + 'model_valid_' + '_' + str(epoch) + '.pth.tar')
     # just save best model
-    if is_best:
-        shutil.copy(filepath, best_model_path + 'model_best_' + str(best_model_HTER) + '_' + str(epoch) + '.pth.tar')
+    #if is_best:
+    #    shutil.copy(filepath, best_model_path + 'model_best_' + str(best_model_HTER) + '_' + str(epoch) + '.pth.tar')
 
 def zero_param_grad(params):
     for p in params:

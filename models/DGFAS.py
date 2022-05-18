@@ -134,7 +134,7 @@ def resnet18(pretrained=False, **kwargs):
     """
     model = ResNet(BasicBlock, [2, 2, 2, 2], **kwargs)
     # change your path
-    model_path = 'resnet18-5c106cde.pth'
+    model_path = '/home/shayantabatabaei/Projects/SSDG-CVPR2020/pretrained_model/resnet18-5c106cde.pth'
     if pretrained:
         model.load_state_dict(torch.load(model_path))
         print("loading model: ", model_path)

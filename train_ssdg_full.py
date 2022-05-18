@@ -4,12 +4,14 @@ sys.path.append('../../')
 from utils.utils import save_checkpoint, AverageMeter, Logger, mkdirs, adjust_learning_rate, time_to_str
 from utils.evaluate import eval
 from utils.get_loader import get_dataset
+from utils.metrics import Metrics
 from models.DGFAS import DG_model, Discriminator
 from loss.hard_triplet_loss import HardTripletLoss
 from loss.AdLoss import Real_AdLoss, Fake_AdLoss
 import random
 import numpy as np
 from config import config
+from torch.nn import functional as F
 from datetime import datetime
 import time
 from timeit import default_timer as timer
@@ -25,14 +27,15 @@ np.random.seed(config.seed)
 torch.manual_seed(config.seed)
 torch.cuda.manual_seed_all(config.seed)
 torch.cuda.manual_seed(config.seed)
-os.environ["CUDA_VISIBLE_DEVICES"] = config.gpus
+#os.environ["CUDA_VISIBLE_DEVICES"] = config.gpus
+os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
 device = 'cuda'
 #device = 'cpu'
 
 def train():
-    mkdirs(config.checkpoint_path, config.best_model_path, config.logs)
+    mkdirs(config.checkpoint_path, config.valid_model_path, config.logs)
     # load data
     src1_train_dataloader_fake, src1_train_dataloader_real, \
     src2_train_dataloader_fake, src2_train_dataloader_real, \
@@ -48,19 +51,21 @@ def train():
                                        config.src6_data,
                                        config.tgt_data, config.batch_size, config.data_path)
 
-    best_model_ACER = 1.0
-    best_model_EER = 1.0
-    best_model_HTER = 1.0
-    best_model_AUC = 0.0
-    best_model_ACC = 0.0
-    best_model_recall = 0.0
-    best_model_precision = 0.0
-    best_model_fscore = 0.0
+    valid_model_ACER = 1.0
+    valid_model_EER = 1.0
+    valid_model_HTER = 1.0
+    valid_model_AUC = 0.0
+    valid_model_ACC = 0.0
+    valid_model_recall = 0.0
+    valid_model_precision = 0.0
+    valid_model_fscore = 0.0
+    valid_model_conf_matrix = 0.0
 
-    # 0:loss, 1:ACER, 2:EER, 3:HTER, 4:AUC, 5:ACC, 6:recall 7: precision 8: fscore
-    valid_args = [np.inf, 0, 0, 0, 0, 0, 0, 0, 0]
+    # 0:loss, 1:ACER, 2:EER, 3:HTER, 4:AUC, 5:ACC, 6:recall 7: precision 8: fscore 9: confusion matrix
+    valid_args = [np.inf, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
     loss_classifier = AverageMeter()
+    acc_classifier = AverageMeter()
 
     net = DG_model(config.model).to(device)
     ad_net_real = Discriminator().to(device)
@@ -72,11 +77,11 @@ def train():
     print("Norm_flag: ", config.norm_flag)
     log.write('** start training target model! **\n')
     log.write(
-        '--------|--- classifier ---|------------------- Current Best -------------------|--------------|\n')
+        '--------|--- classifier ---|-------------------- validation --------------------|----------------|\n')
     log.write(
-        '  iter  |        loss      | ACER  EER  HTER  AUC ACC  recall precision f-score |    time      |\n')
+        '  iter  |    loss   ACC    | ACER  EER  HTER  AUC ACC  recall precision f-score confusion_matrix |    time      |\n')
     log.write(
-        '-----------------------------------------------------------------------------------------------|\n')
+        '-------------------------------------------------------------------------------------------------|\n')
     start = timer()
     criterion = {
         'softmax': nn.CrossEntropyLoss().cuda(),
@@ -311,47 +316,65 @@ def train():
         optimizer.zero_grad()
 
         loss_classifier.update(cls_loss.item())
+        probs = F.softmax(classifier_label_out.narrow(0, 0, input_data.size(0)), dim=1).cpu().data.numpy()[:, 1]
+        tn, fp, fn, tp = Metrics.confusion_matrix(source_label.cpu().data.numpy(), probs, config.threshold)
+        conf_matrix = (tn, fp, fn, tp)
+        acc = Metrics.accuracy(conf_matrix)
+        acc_classifier.update(acc)
+
         print('\r', end='', flush=True)
         print(
-            '  %4.1f  |  %6.3f   |  %6.3f  %6.3f  %6.3f  %6.3f  %6.3f  %6.3f  %6.3f  %6.3f| %s'
+            '  %4.1f  |  %6.3f  %6.3f  |  %6.3f  %6.3f  %6.3f  %6.3f  %6.3f  %6.3f  %6.3f  %6.3f  %s  | %s'
             % (
-                (iter_num+1) / iter_per_epoch, loss_classifier.avg,
-                float(best_model_ACER * 100), float(best_model_EER * 100),
-                float(best_model_HTER * 100), float(best_model_AUC * 100),
-                float(best_model_ACC), float(best_model_recall),
-                float(best_model_precision), float(best_model_fscore),
+                (iter_num+1) / iter_per_epoch, loss_classifier.avg, acc_classifier.avg,
+                float(valid_model_ACER * 100), float(valid_model_EER * 100),
+                float(valid_model_HTER * 100), float(valid_model_AUC * 100),
+                float(valid_model_ACC), float(valid_model_recall),
+                float(valid_model_precision), float(valid_model_fscore),
+                valid_model_conf_matrix,
                 time_to_str(timer() - start, 'min'))
             , end='', flush=True)
 
-        #in baraye vaghtie ke intra bezanim
-        if (iter_num != 0 and (iter_num+1) % iter_per_epoch == 0):
-            # 0:ACER, 1:EER, 2:HTER, 3:AUC, 4:ACC, 5:recall 6: precision 7: f-score
+        if (iter_num != 0 and (iter_num+1) % 20 == 0):
+            # 0:ACER, 1:EER, 2:HTER, 3:AUC, 4:ACC, 5:recall 6: precision 7: f-score 8: confusion matrix
             valid_args = eval(tgt_valid_dataloader, net, config.norm_flag)
             # judge model according to HTER
-            is_best = valid_args[2] <= best_model_HTER
-            best_model_HTER = min(valid_args[2], best_model_HTER)
-            if (valid_args[2] <= best_model_HTER):
-                best_model_ACER = valid_args[0]
-                best_model_EER = valid_args[1]
-                best_model_AUC = valid_args[3]
-                best_model_ACC = valid_args[4]
-                best_model_recall = valid_args[5]
-                best_model_precision = valid_args[6]
-                best_model_fscore = valid_args[7]
+            #is_best = valid_args[2] <= best_model_HTER
+            #best_model_HTER = min(valid_args[2], best_model_HTER)
+            #if (valid_args[2] <= best_model_HTER):
+            #    best_model_ACER = valid_args[0]
+            #    best_model_EER = valid_args[1]
+            #    best_model_AUC = valid_args[3]
+            #    best_model_ACC = valid_args[4]
+            #    best_model_recall = valid_args[5]
+            #    best_model_precision = valid_args[6]
+            #    best_model_fscore = valid_args[7]
+            #    best_model_conf_matrix = valid_args[8]
+            valid_model_ACER = valid_args[0]
+            valid_model_EER = valid_args[1]
+            valid_model_HTER = valid_args[2]
+            valid_model_AUC = valid_args[3]
+            valid_model_ACC = valid_args[4]
+            valid_model_recall = valid_args[5]
+            valid_model_precision = valid_args[6]
+            valid_model_fscore = valid_args[7]
+            valid_model_conf_matrix = valid_args[8]
 
-            save_list = [epoch, valid_args, best_model_ACER, best_model_EER, best_model_HTER, best_model_AUC,
-                         best_model_ACC, best_model_recall, best_model_precision, best_model_fscore]
-            save_checkpoint(save_list, is_best, net, config.gpus, config.checkpoint_path, config.best_model_path)
+            #save_list = [epoch, valid_args, best_model_ACER, best_model_EER, best_model_HTER, best_model_AUC,
+            #             best_model_ACC, best_model_recall, best_model_precision, best_model_fscore, best_model_conf_matrix]
+            save_list = [epoch, valid_args]
+            save_checkpoint(save_list, net, config.gpus, config.checkpoint_path, config.valid_model_path)
             print('\r', end='', flush=True)
             log.write(
-                '  %4.1f  |  %6.3f  |  %6.3f  %6.3f  %6.3f  %6.3f  %6.3f  %6.3f  %6.3f  %6.3f| %s   %s'
+                '  %4.1f  |  %6.3f  %6.3f  |  %6.3f  %6.3f  %6.3f  %6.3f  %6.3f  %6.3f  %6.3f  %6.3f  %s| %s'
                 % (
-                (iter_num + 1) / iter_per_epoch, loss_classifier.avg,
-                float(best_model_ACER * 100), float(best_model_EER * 100),
-                float(best_model_HTER * 100), float(best_model_AUC * 100),
-                float(best_model_ACC), float(best_model_recall),
-                float(best_model_precision), float(best_model_fscore),
-                time_to_str(timer() - start, 'min'), param_lr_tmp[0]))
+                (iter_num + 1) / iter_per_epoch, loss_classifier.avg, acc_classifier.avg,
+                float(valid_model_ACER * 100), float(valid_model_EER * 100),
+                float(valid_model_HTER * 100), float(valid_model_AUC * 100),
+                float(valid_model_ACC), float(valid_model_recall),
+                float(valid_model_precision), float(valid_model_fscore),
+                valid_model_conf_matrix,
+                time_to_str(timer() - start, 'min')))
             log.write('\n')
             time.sleep(0.01)
 

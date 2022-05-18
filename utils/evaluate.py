@@ -27,7 +27,7 @@ def eval(valid_dataloader, model, norm_flag):
             label_list.extend(label)
             #feature_list.extend(feature)
 
-    tn, fp, fn, tp = Metrics.confusion_matrix(label_list, prob_list, 0.2)
+    tn, fp, fn, tp = Metrics.confusion_matrix(label_list, prob_list, 0.5)
     conf_matrix = (tn, fp, fn, tp)
     cur_acc_valid = Metrics.accuracy(conf_matrix)
     cur_precision_valid = Metrics.precision(conf_matrix)
@@ -40,5 +40,5 @@ def eval(valid_dataloader, model, norm_flag):
     #np.save('features', np.array(feature_list))
 
     return [cur_ACER_valid, cur_EER_valid, cur_HTER_valid, auc_score,
-            cur_acc_valid, cur_recall_valid, cur_precision_valid, cur_fscore_valid]
+            cur_acc_valid, cur_recall_valid, cur_precision_valid, cur_fscore_valid, (conf_matrix,)]
 
