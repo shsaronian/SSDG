@@ -1,10 +1,9 @@
 import numpy as np
-from sklearn.metrics import confusion_matrix, roc_curve, auc, precision_recall_curve, ConfusionMatrixDisplay
+from sklearn.metrics import confusion_matrix, roc_curve, auc, precision_recall_curve
 import matplotlib.pyplot as plt
 
 
 class Metrics:
-
     @staticmethod
     def confusion_matrix(labels, predict, threshold) -> (int, int, int, int):
         prediction = np.greater(predict, threshold)

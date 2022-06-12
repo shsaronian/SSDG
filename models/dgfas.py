@@ -10,6 +10,7 @@ def l2_norm(input, axis=1):
     output = torch.div(input, norm)
     return output
 
+
 class Feature_Generator_MADDG(nn.Module):
     def __init__(self):
         super(Feature_Generator_MADDG, self).__init__()
@@ -134,7 +135,7 @@ def resnet18(pretrained=False, **kwargs):
     """
     model = ResNet(BasicBlock, [2, 2, 2, 2], **kwargs)
     # change your path
-    model_path = '/home/shayantabatabaei/Projects/SSDG-CVPR2020/pretrained_model/resnet18-5c106cde.pth'
+    model_path = 'pretrained_model/resnet18-5c106cde.pth'
     if pretrained:
         model.load_state_dict(torch.load(model_path))
         print("loading model: ", model_path)
@@ -226,7 +227,7 @@ class Discriminator(nn.Module):
         self.fc1.weight.data.normal_(0, 0.01)
         self.fc1.bias.data.fill_(0.0)
         #self.fc2 = nn.Linear(512, 3)
-        self.fc2 = nn.Linear(512, 6)
+        self.fc2 = nn.Linear(512, 4)
         self.fc2.weight.data.normal_(0, 0.3)
         self.fc2.bias.data.fill_(0.0)
         self.ad_net = nn.Sequential(
@@ -260,14 +261,3 @@ class DG_model(nn.Module):
         feature = self.embedder(feature, norm_flag)
         classifier_out = self.classifier(feature, norm_flag)
         return classifier_out, feature
-
-if __name__ == '__main__': 
-    x = Variable(torch.ones(1, 3, 256, 256))
-    model = DG_model()
-    y, v = model(x, True)
-
-
-
-
-
-

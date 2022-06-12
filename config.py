@@ -15,25 +15,25 @@ class DefaultConfigs(object):
     gpus = "1"
     batch_size = 10
     norm_flag = True
-    max_iter = 3000
+    max_iter = 4000
     lambda_triplet = 2
     lambda_adreal = 0.1
     # test model name
-    tgt_best_model_name = 'model_valid_98.pth.tar'
+    model_name = 'model_best.pth.tar'
     # source data information
-    src1_data = 'casia_train'
-    src2_data = 'mobile_distance'
-    src3_data = 'msumfsd'
-    src4_data = 'nuaa'
-    src5_data = 'pc'
-    src6_data = 'replay_mobile_train'
+    src1_data = 'pc'
+    src2_data = 'mobile'
+    src3_data = 'msu'
+    src4_data = 'casia'
+    #src5_data = 'replay_mobile'
+    #src6_data = 'rose'
     # target data information
-    tgt_data = 'data_val'
+    tgt_data = 'rose'
+    tgt_test_num_frames = 1
     # paths information
     data_path = "./data/"
     checkpoint_path = './' + tgt_data + '_checkpoint/' + model + '/DGFANet/'
-    valid_model_path = './' + tgt_data + '_checkpoint/' + model + '/valid_model/'
-    #valid_model_path = './' + 'data_val' + '_checkpoint/' + model + '/valid_model/'
+    model_path = './' + tgt_data + '_checkpoint/' + model + '/model/'
     logs = './logs/'
 
 config = DefaultConfigs()

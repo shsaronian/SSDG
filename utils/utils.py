@@ -9,6 +9,7 @@ import random
 import matplotlib.pyplot as plt
 
 
+
 def adjust_learning_rate(optimizer, epoch, init_param_lr, lr_epoch_1, lr_epoch_2):
     i = 0
     for param_group in optimizer.param_groups:
@@ -57,7 +58,7 @@ def load_files(path):
             features.extend(data)
             labels.extend(label)
     temp_array = list(zip(features, labels))
-    random.Random(0).shuffle(temp_array)
+    #random.Random(0).shuffle(temp_array)
     features, labels = zip(*temp_array)
     return features, labels
 
@@ -161,16 +162,16 @@ class Logger(object):
 
 def save_checkpoint(save_list, model, gpus, checkpoint_path, model_path, filename='_checkpoint.pth.tar'):
     epoch = save_list[0]
-    valid_args = save_list[1]
-    valid_model_ACER = valid_args[0]
-    valid_model_EER = valid_args[1]
-    valid_model_HTER = round(valid_args[2], 5)
-    valid_model_AUC = valid_args[3]
-    valid_model_ACC = valid_args[4]
-    valid_model_recall = valid_args[5]
-    valid_model_precision = valid_args[6]
-    valid_model_fscore = valid_args[7]
-    valid_model_conf_matrix = valid_args[8]
+    #valid_args = save_list[1]
+    #valid_model_ACER = valid_args[0]
+    #valid_model_EER = valid_args[1]
+    #valid_model_HTER = round(valid_args[2], 5)
+    #valid_model_AUC = valid_args[3]
+    #valid_model_ACC = valid_args[4]
+    #valid_model_recall = valid_args[5]
+    #valid_model_precision = valid_args[6]
+    #valid_model_fscore = valid_args[7]
+    #valid_model_conf_matrix = valid_args[8]
 
     if(len(gpus) > 1):
         old_state_dict = model.state_dict()
@@ -183,32 +184,32 @@ def save_checkpoint(save_list, model, gpus, checkpoint_path, model_path, filenam
             new_state_dict[k] = v
         state = {
             "epoch": epoch,
-            "state_dict": new_state_dict,
-            "valid_arg": valid_args,
-            "valid_model_ACER": valid_model_ACER,
-            "valid_model_EER": valid_model_EER,
-            "valid_model_HTER": valid_model_HTER,
-            "valid_model_AUC": valid_model_AUC,
-            "valid_model_ACC": valid_model_ACC,
-            "valid_model_recall": valid_model_recall,
-            "valid_model_precision": valid_model_precision,
-            "valid_model_fscore": valid_model_fscore,
-            "valid_model_conf_matrix": valid_model_conf_matrix
+            "state_dict": new_state_dict
+            #"valid_arg": valid_args
+            #"valid_model_ACER": valid_model_ACER,
+            #"valid_model_EER": valid_model_EER,
+            #"valid_model_HTER": valid_model_HTER,
+            #"valid_model_AUC": valid_model_AUC,
+            #"valid_model_ACC": valid_model_ACC,
+            #"valid_model_recall": valid_model_recall,
+            #"valid_model_precision": valid_model_precision,
+            #"valid_model_fscore": valid_model_fscore,
+            #"valid_model_conf_matrix": valid_model_conf_matrix
         }
     else:
         state = {
             "epoch": epoch,
-            "state_dict": model.state_dict(),
-            "valid_arg": valid_args,
-            "valid_model_ACER": valid_model_ACER,
-            "valid_model_EER": valid_model_EER,
-            "valid_model_HTER": valid_model_HTER,
-            "valid_model_AUC": valid_model_AUC,
-            "valid_model_ACC": valid_model_ACC,
-            "valid_model_recall": valid_model_recall,
-            "valid_model_precision": valid_model_precision,
-            "valid_model_fscore": valid_model_fscore,
-            "valid_model_conf_matrix": valid_model_conf_matrix
+            "state_dict": model.state_dict()
+            #"valid_arg": valid_args
+            #"valid_model_ACER": valid_model_ACER,
+            #"valid_model_EER": valid_model_EER,
+            #"valid_model_HTER": valid_model_HTER,
+            #"valid_model_AUC": valid_model_AUC,
+            #"valid_model_ACC": valid_model_ACC,
+            #"valid_model_recall": valid_model_recall,
+            #"valid_model_precision": valid_model_precision,
+            #"valid_model_fscore": valid_model_fscore,
+            #"valid_model_conf_matrix": valid_model_conf_matrix
         }
     filepath = checkpoint_path + filename
     torch.save(state, filepath)
@@ -221,3 +222,5 @@ def zero_param_grad(params):
     for p in params:
         if p.grad is not None:
             p.grad.zero_()
+
+
