@@ -1,29 +1,16 @@
 import torch
 import torch.nn as nn
-from torchvision.models.resnet import ResNet, BasicBlock
 import numpy as np
 from torch.autograd import Variable
+from utils.utils import l2_norm, resnet18
 
 
-def l2_norm(input, axis=1):
-    norm = torch.norm(input, 2, axis, True)
-    output = torch.div(input, norm)
-    return output
-
-
-def resnet18(pretrained=False, **kwargs):
-    model = ResNet(BasicBlock, [2, 2, 2, 2], **kwargs)
-    model_path = 'pretrained_model/resnet18-5c106cde.pth'
-    if pretrained:
-        model.load_state_dict(torch.load(model_path))
-        print("loading model: ", model_path)
-    return model
 
 
 class Feature_Generator_ResNet18(nn.Module):
     def __init__(self):
         super(Feature_Generator_ResNet18, self).__init__()
-        model_resnet = resnet18(pretrained=True)
+        model_resnet = resnet18(pretrained=False)
         self.conv1 = model_resnet.conv1
         self.bn1 = model_resnet.bn1
         self.relu = model_resnet.relu
@@ -83,47 +70,6 @@ class Classifier(nn.Module):
         else:
             classifier_out = self.classifier_layer(input)
         return classifier_out
-
-
-class GRL(torch.autograd.Function):
-    def __init__(self):
-        self.iter_num = 0
-        self.alpha = 10
-        self.low = 0.0
-        self.high = 1.0
-        self.max_iter = 4000  # be same to the max_iter of config.py
-
-    def forward(self, input):
-        self.iter_num += 1
-        return input * 1.0
-
-    def backward(self, gradOutput):
-        coeff = np.float(2.0 * (self.high - self.low) / (1.0 + np.exp(-self.alpha * self.iter_num / self.max_iter))
-                         - (self.high - self.low) + self.low)
-        return -coeff * gradOutput
-
-
-class Discriminator(nn.Module):
-    def __init__(self):
-        super(Discriminator, self).__init__()
-        self.fc1 = nn.Linear(512, 512)
-        self.fc1.weight.data.normal_(0, 0.01)
-        self.fc1.bias.data.fill_(0.0)
-        #self.fc2 = nn.Linear(512, 3)
-        self.fc2 = nn.Linear(512, 4)
-        self.fc2.weight.data.normal_(0, 0.3)
-        self.fc2.bias.data.fill_(0.0)
-        self.ad_net = nn.Sequential(
-            self.fc1,
-            nn.ReLU(),
-            nn.Dropout(0.5),
-            self.fc2
-        )
-        self.grl_layer = GRL()
-
-    def forward(self, feature):
-        adversarial_out = self.ad_net(self.grl_layer.forward(feature))
-        return adversarial_out
 
 
 class DG_model(nn.Module):

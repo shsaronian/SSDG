@@ -355,14 +355,14 @@ def train():
             save_checkpoint(save_list, net, config.gpus, config.checkpoint_path, config.model_path)
             print('\r', end='', flush=True)
             log.write(
-                '  %4.1f  |  %6.3f  %6.3f| %s   %s'
+                '  %4.1f  |  %6.3f  %6.3f| %s'
                 % (
                 (iter_num + 1) / iter_per_epoch, loss_classifier.avg, loss_classifier_mse.avg,
                 #float(best_model_ACER * 100), float(best_model_EER * 100),
                 #float(best_model_HTER * 100), float(best_model_AUC * 100),
                 #float(best_model_ACC), float(best_model_recall),
                 #float(best_model_precision), float(best_model_fscore),
-                time_to_str(timer() - start, 'min'), param_lr_tmp[0]))
+                time_to_str(timer() - start, 'min')))
             log.write('\n')
             time.sleep(0.01)
 

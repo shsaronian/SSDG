@@ -1,9 +1,17 @@
 import numpy as np
-from sklearn.metrics import confusion_matrix, roc_curve, auc, precision_recall_curve
+from sklearn.metrics import confusion_matrix, roc_curve, auc, precision_recall_curve, log_loss, mean_squared_error
 import matplotlib.pyplot as plt
 
 
 class Metrics:
+    @staticmethod
+    def log_loss(labels, predict):
+        return log_loss(labels, predict)
+
+    @staticmethod
+    def mse_loss(labels, predict):
+        return mean_squared_error(labels, predict)
+
     @staticmethod
     def confusion_matrix(labels, predict, threshold) -> (int, int, int, int):
         prediction = np.greater(predict, threshold)
@@ -86,7 +94,6 @@ class Metrics:
         plt.title('ROC')
         plt.legend()
         plt.show()
-        # plt.savefig("roc.png")
 
     @staticmethod
     def plot_pr(label, predict):
@@ -108,7 +115,6 @@ class Metrics:
         plt.legend(loc='best')
         plt.show()
         # plt.grid(b=True, which="both", axis="both", color='gray', linestyle='-', linewidth=1)
-        # plt.savefig("pr_curve.png")
 
     @staticmethod
     def plot_histogram(label, predict, name):

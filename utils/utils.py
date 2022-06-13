@@ -7,7 +7,7 @@ import sys
 import shutil
 import random
 import matplotlib.pyplot as plt
-
+from torchvision.models.resnet import ResNet, BasicBlock
 
 
 def adjust_learning_rate(optimizer, epoch, init_param_lr, lr_epoch_1, lr_epoch_2):
@@ -22,27 +22,6 @@ def adjust_learning_rate(optimizer, epoch, init_param_lr, lr_epoch_1, lr_epoch_2
         else:
             param_group['lr'] = init_lr * 0.1 ** 2
 
-def draw_roc(frr_list, far_list, roc_auc):
-    plt.switch_backend('agg')
-    plt.rcParams['figure.figsize'] = (6.0, 6.0)
-    plt.title('ROC')
-    plt.plot(far_list, frr_list, 'b', label='AUC = %0.4f' % roc_auc)
-    plt.legend(loc='upper right')
-    plt.plot([0, 1], [1, 0], 'r--')
-    plt.grid(ls='--')
-    plt.ylabel('False Negative Rate')
-    plt.xlabel('False Positive Rate')
-    save_dir = './save_results/ROC/'
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
-    plt.savefig('./save_results/ROC/ROC.png')
-    file = open('./save_results/ROC/FAR_FRR.txt', 'w')
-    save_json = []
-    dict = {}
-    dict['FAR'] = far_list
-    dict['FRR'] = frr_list
-    save_json.append(dict)
-    json.dump(save_json, file, indent=4)
 
 def load_files(path):
     features = []
@@ -52,15 +31,12 @@ def load_files(path):
             file = np.load(os.path.join(path, file_name), allow_pickle=True)
             data = file[:, 1]
             label = file[:, 0]
-            #if key == 'mobile_distance':
-            #    data = data[np.where(label == 1)]
-            #    label = label[np.where(label == 1)]
             features.extend(data)
             labels.extend(label)
     temp_array = list(zip(features, labels))
-    #random.Random(0).shuffle(temp_array)
     features, labels = zip(*temp_array)
     return features, labels
+
 
 def split_fake_real(features, labels):
     df = pd.DataFrame(list(zip(features, labels)), columns=['features', 'labels'])
@@ -97,21 +73,6 @@ class AverageMeter(object):
         self.count += n
         self.avg = self.sum / self.count
 
-def accuracy(output, target, topk=(1,)):
-    """Computes the accuracy over the k top predictions for the specified values of k"""
-    with torch.no_grad():
-        maxk = max(topk)
-        batch_size = target.size(0)
-
-        _, pred = output.topk(maxk, 1, True, True)
-        pred = pred.t()
-        correct = pred.eq(target.view(1, -1).expand_as(pred))
-
-        res = []
-        for k in topk:
-            correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
-            res.append(correct_k.mul_(100.0 / batch_size))
-        return res
 
 def mkdirs(checkpoint_path, best_model_path, logs):
     if not os.path.exists(checkpoint_path):
@@ -120,6 +81,7 @@ def mkdirs(checkpoint_path, best_model_path, logs):
         os.makedirs(best_model_path)
     if not os.path.exists(logs):
         os.mkdir(logs)
+
 
 def time_to_str(t, mode='min'):
     if mode=='min':
@@ -135,6 +97,7 @@ def time_to_str(t, mode='min'):
     else:
         raise NotImplementedError
 
+
 class Logger(object):
     def __init__(self):
         self.terminal = sys.stdout
@@ -144,6 +107,7 @@ class Logger(object):
         if mode is None:
             mode = 'w'
         self.file = open(file, mode)
+
     def write(self, message, is_terminal=1, is_file=1):
         if '\r' in message:
             is_file = 0
@@ -159,6 +123,7 @@ class Logger(object):
         # this handles the flush command by doing nothing.
         # you might want to specify some extra behavior here.
         pass
+
 
 def save_checkpoint(save_list, model, gpus, checkpoint_path, model_path, filename='_checkpoint.pth.tar'):
     epoch = save_list[0]
@@ -213,10 +178,8 @@ def save_checkpoint(save_list, model, gpus, checkpoint_path, model_path, filenam
         }
     filepath = checkpoint_path + filename
     torch.save(state, filepath)
-    shutil.copy(filepath, model_path + 'model_valid_' + '_' + str(epoch) + '.pth.tar')
-    # just save best model
-    #if is_best:
-    #    shutil.copy(filepath, best_model_path + 'model_best_' + str(best_model_HTER) + '_' + str(epoch) + '.pth.tar')
+    shutil.copy(filepath, model_path + 'model' + '_' + str(epoch) + '.pth.tar')
+
 
 def zero_param_grad(params):
     for p in params:
@@ -224,3 +187,16 @@ def zero_param_grad(params):
             p.grad.zero_()
 
 
+def l2_norm(input, axis=1):
+    norm = torch.norm(input, 2, axis, True)
+    output = torch.div(input, norm)
+    return output
+
+
+def resnet18(pretrained=False, **kwargs):
+    model = ResNet(BasicBlock, [2, 2, 2, 2], **kwargs)
+    model_path = 'pretrained_model/resnet18-5c106cde.pth'
+    if pretrained:
+        model.load_state_dict(torch.load(model_path))
+        print("loading model: ", model_path)
+    return model

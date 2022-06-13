@@ -18,8 +18,6 @@ class DefaultConfigs(object):
     max_iter = 4000
     lambda_triplet = 2
     lambda_adreal = 0.1
-    # test model name
-    model_name = 'model_best.pth.tar'
     # source data information
     src1_data = 'pc'
     src2_data = 'mobile'
@@ -35,5 +33,7 @@ class DefaultConfigs(object):
     checkpoint_path = './' + tgt_data + '_checkpoint/' + model + '/DGFANet/'
     model_path = './' + tgt_data + '_checkpoint/' + model + '/model/'
     logs = './logs/'
+    confidences_path = './confidences/'
+    plot_path = './plots/'
 
 config = DefaultConfigs()
