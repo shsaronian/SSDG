@@ -21,15 +21,17 @@ class DefaultConfigs(object):
     # source data information
     src1_data = 'pc'
     src2_data = 'mobile'
-    src3_data = 'msu'
+    src3_data = 'msumfsd'
     src4_data = 'casia'
     #src5_data = 'replay_mobile'
     #src6_data = 'rose'
     # target data information
-    tgt_data = 'rose'
-    tgt_test_num_frames = 1
+    tgt_data = 'roseyouto'
+    #tgt_data = 'replay'
     # paths information
-    data_path = "./data/"
+    data_path = "D:/Disk-2/fold1/train/"
+    tgt_data_path = "D:/Disk-2/fold1/validation/"
+    #tgt_data_path = "D:/Disk-2/fold1/test/"
     checkpoint_path = './' + tgt_data + '_checkpoint/' + model + '/DGFANet/'
     model_path = './' + tgt_data + '_checkpoint/' + model + '/model/'
     logs = './logs/'

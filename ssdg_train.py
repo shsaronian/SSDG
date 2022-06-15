@@ -2,7 +2,6 @@ import sys
 sys.path.append('../../')
 
 from utils.utils import save_checkpoint, AverageMeter, Logger, mkdirs, adjust_learning_rate, time_to_str
-from utils.evaluate import eval
 from utils.get_loader import get_dataset
 from models.dgfas import DG_model, Discriminator
 from loss.hard_triplet_loss import HardTripletLoss

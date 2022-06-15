@@ -1,12 +1,9 @@
-import json
 import numpy as np
 import pandas as pd
 import torch
 import os
 import sys
 import shutil
-import random
-import matplotlib.pyplot as plt
 from torchvision.models.resnet import ResNet, BasicBlock
 
 
@@ -23,12 +20,12 @@ def adjust_learning_rate(optimizer, epoch, init_param_lr, lr_epoch_1, lr_epoch_2
             param_group['lr'] = init_lr * 0.1 ** 2
 
 
-def load_files(path):
+def load_files(directory_path):
     features = []
     labels = []
-    for file_name in os.listdir(path):
+    for file_name in os.listdir(directory_path):
         if 'dataset_' in file_name:
-            file = np.load(os.path.join(path, file_name), allow_pickle=True)
+            file = np.load(os.path.join(directory_path, file_name), allow_pickle=True)
             data = file[:, 1]
             label = file[:, 0]
             features.extend(data)
@@ -36,6 +33,39 @@ def load_files(path):
     temp_array = list(zip(features, labels))
     features, labels = zip(*temp_array)
     return features, labels
+
+
+def load_directory_files(path, key):
+    features = []
+    labels = []
+    if key == 'casia':
+        for dir in ['casia_train', 'casia_test']:
+            casia_features, casia_labels = load_files(os.path.join(path, dir))
+            features.extend(list(casia_features))
+            labels.extend(list(casia_labels))
+        return features, labels
+    elif key == 'replay':
+        for dir in ['replay_mobile_train', 'replay_mobile_test']:
+            replay_features, replay_labels = load_files(os.path.join(path, dir))
+            features.extend(list(replay_features))
+            labels.extend(list(replay_labels))
+        return features, labels
+    elif key == 'mobile':
+        new_features, new_labels = load_files(os.path.join(path, 'mobile_new'))
+        features.extend(list(new_features))
+        labels.extend(list(new_labels))
+        distance_features = []
+        distance_labels = []
+        for dir in ['spoof', 'live']:
+            key_features, key_labels = load_files(os.path.join(path, 'mobile_distance', dir))
+            distance_features.extend(list(key_features))
+            distance_labels.extend(list(key_labels))
+        features.extend(distance_features)
+        labels.extend(distance_labels)
+        return features, labels
+    else:
+        features, labels = load_files(os.path.join(path, key))
+        return list(features), list(labels)
 
 
 def split_fake_real(features, labels):

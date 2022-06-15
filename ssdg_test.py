@@ -9,9 +9,8 @@ from torch.nn import functional as F
 from config import config
 from utils.metrics import Metrics
 from utils.dataset import SSDGDataset
-from utils.utils import load_files
 from models.dgfas_eval import DG_model
-from utils.utils import load_files, Logger, time_to_str
+from utils.utils import load_directory_files, Logger, time_to_str
 import time
 import matplotlib.pyplot as plt
 
@@ -82,11 +81,12 @@ def main():
 
     log = Logger()
     log.open(config.logs + config.tgt_data + '_log_SSDG_evaluation.txt', mode='a')
+    #log.open(config.logs + config.tgt_data + '_log_SSDG_test.txt', mode='a')
 
     net = DG_model(config.model).cuda()
     #net = DG_model(config.model)
 
-    tgt_test_features, tgt_test_labels = load_files(os.path.join(config.data_path, config.tgt_data))
+    tgt_test_features, tgt_test_labels = load_directory_files(config.tgt_data_path, config.tgt_data)
     tgt_test_data = [tgt_test_features, tgt_test_labels]
     test_dataloader = DataLoader(SSDGDataset(tgt_test_data, train=False), batch_size=1, shuffle=False)
     print('\n')

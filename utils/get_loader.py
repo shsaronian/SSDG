@@ -1,7 +1,7 @@
 import os
 from torch.utils.data import DataLoader
 from utils.dataset import SSDGDataset
-from utils.utils import load_files, split_fake_real
+from utils.utils import load_directory_files, split_fake_real
 
 def get_dataset(src1_data, src2_data, src3_data, src4_data,
                 #src5_data, src6_data,
@@ -9,22 +9,26 @@ def get_dataset(src1_data, src2_data, src3_data, src4_data,
                 batch_size, path):
     print('Load Source Data')
     print('Source Data: ', src1_data)
-    src1_train_features, src1_train_labels = load_files(os.path.join(path, src1_data))
+    #src1_train_features, src1_train_labels = load_files(os.path.join(path, src1_data))
+    src1_train_features, src1_train_labels = load_directory_files(path, src1_data)
     src1_train_data_real, src1_train_data_fake = split_fake_real(src1_train_features, src1_train_labels)
 
     print('Load Source Data')
     print('Source Data: ', src2_data)
-    src2_train_features, src2_train_labels = load_files(os.path.join(path, src2_data))
+    #src2_train_features, src2_train_labels = load_files(os.path.join(path, src2_data))
+    src2_train_features, src2_train_labels = load_directory_files(path, src2_data)
     src2_train_data_real, src2_train_data_fake = split_fake_real(src2_train_features, src2_train_labels)
 
     print('Load Source Data')
     print('Source Data: ', src3_data)
-    src3_train_features, src3_train_labels = load_files(os.path.join(path, src3_data))
+    #src3_train_features, src3_train_labels = load_files(os.path.join(path, src3_data))
+    src3_train_features, src3_train_labels = load_directory_files(path, src3_data)
     src3_train_data_real, src3_train_data_fake = split_fake_real(src3_train_features, src3_train_labels)
 
     print('Load Source Data')
     print('Source Data: ', src4_data)
-    src4_train_features, src4_train_labels = load_files(os.path.join(path, src4_data))
+    #src4_train_features, src4_train_labels = load_files(os.path.join(path, src4_data))
+    src4_train_features, src4_train_labels = load_directory_files(path, src4_data)
     src4_train_data_real, src4_train_data_fake = split_fake_real(src4_train_features, src4_train_labels)
 
     #print('Load Source Data')
