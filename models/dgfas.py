@@ -91,7 +91,7 @@ class GRL(torch.autograd.Function):
         self.alpha = 10
         self.low = 0.0
         self.high = 1.0
-        self.max_iter = 4000  # be same to the max_iter of config.py
+        self.max_iter = 14200  # be same to the max_iter of config.py
 
     def forward(self, input):
         self.iter_num += 1

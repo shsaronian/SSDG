@@ -14,7 +14,6 @@ from utils.utils import load_directory_files, Logger, time_to_str
 import time
 import matplotlib.pyplot as plt
 
- 
 os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 #device = 'cpu'
 
@@ -92,14 +91,17 @@ def main():
     print('\n')
     print("**Testing** Get test files done!")
 
+    model_list = os.listdir(config.model_path)
+    model_list.sort()
     # load model
-    for file in os.listdir(config.model_path):
+    for file in model_list:
         #checkpoints = torch.load(config.model_path + file, map_location=torch.device('cpu'))
         checkpoints = torch.load(config.model_path + file)
         net.load_state_dict(checkpoints["state_dict"])
 
         threshold = config.threshold
         epoch = checkpoints["epoch"]
+        print('starting model: ' , file)
         # test model
         start = time.time()
         test_args = test(test_dataloader, net, threshold, epoch)

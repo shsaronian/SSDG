@@ -1,5 +1,8 @@
-torch==1.2.0
-torchvision==0.4.0
-scikit-learn
+torch==2.3.0
+#torch-2.3.0-cp39-cp39-manylinux1_x86_64.whl 
+torchvision==0.18.0
+#torchvision-0.18.0-cp39-cp39-manylinux1_x86_64.whl
+scikit-learn==0.24.2
 pandas
-matplotlib
+matplotlib==3.3.4
+psutil==5.8.0

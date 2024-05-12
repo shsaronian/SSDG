@@ -12,10 +12,10 @@ class DefaultConfigs(object):
     pretrained = True
     model = 'resnet18'     # resnet18 or maddg
     # training parameters
-    gpus = "1"
+    gpus = "0"
     batch_size = 10
     norm_flag = True
-    max_iter = 4000
+    max_iter = 14200
     lambda_triplet = 2
     lambda_adreal = 0.1
     # source data information
@@ -35,6 +35,7 @@ class DefaultConfigs(object):
     checkpoint_path = './' + tgt_data + '_checkpoint/' + model + '/DGFANet/'
     model_path = './' + tgt_data + '_checkpoint/' + model + '/model/'
     logs = './logs/'
+    diagnostic_logs = './diagnostic_logs/'
     confidences_path = './confidences/'
     plot_path = './plots/'
 

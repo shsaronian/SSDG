@@ -1,4 +1,5 @@
 import sys
+import psutil
 sys.path.append('../../')
 
 from utils.utils import save_checkpoint, AverageMeter, Logger, mkdirs, adjust_learning_rate, time_to_str
@@ -35,7 +36,7 @@ device = 'cuda'
 
 
 def train():
-    mkdirs(config.checkpoint_path, config.model_path, config.logs)
+    mkdirs(config.model_path, config.logs, config.diagnostic_logs)
     # load data
     src1_train_dataloader_fake, src1_train_dataloader_real, \
     src2_train_dataloader_fake, src2_train_dataloader_real, \
@@ -76,6 +77,11 @@ def train():
         '  iter  |log_loss  mse_loss|    time      |\n')
     log.write(
         '------------------------------------------|\n')
+
+    diag_log = Logger()
+    diag_log.open(config.diagnostic_logs + config.tgt_data + '_log_SSDG.txt', mode='a')
+    diag_log.write("\n----------------------------------------------- [START %s] %s\n\n" % (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '-' * 51), is_terminal=0)
+
     start = timer()
     criterion = {
         'softmax': nn.CrossEntropyLoss().cuda(),
@@ -163,62 +169,62 @@ def train():
         optimizer.zero_grad()
         adjust_learning_rate(optimizer, epoch, init_param_lr, config.lr_epoch_1, config.lr_epoch_2)
         ######### data prepare #########
-        src1_img_real, src1_label_real = src1_train_iter_real.next()
+        src1_img_real, src1_label_real = next(src1_train_iter_real)
         src1_img_real = src1_img_real.cuda()
         src1_label_real = src1_label_real.cuda()
         input1_real_shape = src1_img_real.shape[0]
 
-        src2_img_real, src2_label_real = src2_train_iter_real.next()
+        src2_img_real, src2_label_real = next(src2_train_iter_real)
         src2_img_real = src2_img_real.cuda()
         src2_label_real = src2_label_real.cuda()
         input2_real_shape = src2_img_real.shape[0]
 
-        src3_img_real, src3_label_real = src3_train_iter_real.next()
+        src3_img_real, src3_label_real = next(src3_train_iter_real)
         src3_img_real = src3_img_real.cuda()
         src3_label_real = src3_label_real.cuda()
         input3_real_shape = src3_img_real.shape[0]
 
-        src4_img_real, src4_label_real = src4_train_iter_real.next()
+        src4_img_real, src4_label_real = next(src4_train_iter_real)
         src4_img_real = src4_img_real.cuda()
         src4_label_real = src4_label_real.cuda()
         input4_real_shape = src4_img_real.shape[0]
 
-        #src5_img_real, src5_label_real = src5_train_iter_real.next()
+        #src5_img_real, src5_label_real = next(src5_train_iter_real)
         #src5_img_real = src5_img_real.cuda()
         #src5_label_real = src5_label_real.cuda()
         #input5_real_shape = src5_img_real.shape[0]
 
-        #src6_img_real, src6_label_real = src6_train_iter_real.next()
+        #src6_img_real, src6_label_real = next(src6_train_iter_real)
         #src6_img_real = src6_img_real.cuda()
         #src6_label_real = src6_label_real.cuda()
         #input6_real_shape = src6_img_real.shape[0]
 
-        src1_img_fake, src1_label_fake = src1_train_iter_fake.next()
+        src1_img_fake, src1_label_fake = next(src1_train_iter_fake)
         src1_img_fake = src1_img_fake.cuda()
         src1_label_fake = src1_label_fake.cuda()
         input1_fake_shape = src1_img_fake.shape[0]
 
-        src2_img_fake, src2_label_fake = src2_train_iter_fake.next()
+        src2_img_fake, src2_label_fake = next(src2_train_iter_fake)
         src2_img_fake = src2_img_fake.cuda()
         src2_label_fake = src2_label_fake.cuda()
         input2_fake_shape = src2_img_fake.shape[0]
 
-        src3_img_fake, src3_label_fake = src3_train_iter_fake.next()
+        src3_img_fake, src3_label_fake = next(src3_train_iter_fake)
         src3_img_fake = src3_img_fake.cuda()
         src3_label_fake = src3_label_fake.cuda()
         input3_fake_shape = src3_img_fake.shape[0]
 
-        src4_img_fake, src4_label_fake = src4_train_iter_fake.next()
+        src4_img_fake, src4_label_fake = next(src4_train_iter_fake)
         src4_img_fake = src4_img_fake.cuda()
         src4_label_fake = src4_label_fake.cuda()
         input4_fake_shape = src4_img_fake.shape[0]
 
-        #src5_img_fake, src5_label_fake = src5_train_iter_fake.next()
+        #src5_img_fake, src5_label_fake = next(src5_train_iter_fake)
         #src5_img_fake = src5_img_fake.cuda()
         #src5_label_fake = src5_label_fake.cuda()
         #input5_fake_shape = src5_img_fake.shape[0]
 
-        #src6_img_fake, src6_label_fake = src6_train_iter_fake.next()
+        #src6_img_fake, src6_label_fake = next(src6_train_iter_fake)
         #src6_img_fake = src6_img_fake.cuda()
         #src6_label_fake = src6_label_fake.cuda()
         #input6_fake_shape = src6_img_fake.shape[0]
@@ -331,8 +337,9 @@ def train():
                 time_to_str(timer() - start, 'min'))
             , end='', flush=True)
 
-        if (iter_num != 0 and (iter_num+1) % iter_per_epoch == 0):
-            # 0:ACER, 1:EER, 2:HTER, 3:AUC, 4:ACC, 5:recall 6: precision 7: f-score
+        #if (iter_num != 0 and (iter_num+1) % iter_per_epoch == 0):
+        if (iter_num != 0 and (iter_num+1) % 20 == 0):
+                # 0:ACER, 1:EER, 2:HTER, 3:AUC, 4:ACC, 5:recall 6: precision 7: f-score
             #valid_args = eval(tgt_valid_dataloader, net, config.norm_flag)
             # judge model according to HTER
             #is_best = valid_args[2] <= best_model_HTER
@@ -351,7 +358,7 @@ def train():
                 #, best_model_ACER, best_model_EER, best_model_HTER, best_model_AUC,
                 #         best_model_ACC, best_model_recall, best_model_precision, best_model_fscore
                          ]
-            save_checkpoint(save_list, net, config.gpus, config.checkpoint_path, config.model_path)
+            save_checkpoint(save_list, net, optimizer, config.gpus, config.model_path)
             print('\r', end='', flush=True)
             log.write(
                 '  %4.1f  |  %6.3f  %6.3f| %s'
@@ -363,6 +370,15 @@ def train():
                 #float(best_model_precision), float(best_model_fscore),
                 time_to_str(timer() - start, 'min')))
             log.write('\n')
+
+            #diag_log.write('Epoch: %d\n' % (epoch), is_terminal=0)
+            #diag_log.write('\n', is_terminal=0)
+            #diag_log.write('CPU Percent: %s\n' % (psutil.cpu_percent()), is_terminal=0)
+            #diag_log.write('\n')
+            #diag_log.write('Sensor Temperature: %s\n' % (psutil.sensors_temperatures()), is_terminal=0)
+            #diag_log.write('\n', is_terminal=0)
+            #diag_log.write('Memory State: %s\n' % (psutil.virtual_memory()._asdict()), is_terminal=0)
+            #diag_log.write('\n===============================\n', is_terminal=0)
             time.sleep(0.01)
 
 if __name__ == '__main__':

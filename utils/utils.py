@@ -155,7 +155,7 @@ class Logger(object):
         pass
 
 
-def save_checkpoint(save_list, model, gpus, checkpoint_path, model_path, filename='_checkpoint.pth.tar'):
+def save_checkpoint(save_list, model, optimizer, gpus, model_path, filename='_checkpoint.pth.tar'):
     epoch = save_list[0]
     #valid_args = save_list[1]
     #valid_model_ACER = valid_args[0]
@@ -194,7 +194,8 @@ def save_checkpoint(save_list, model, gpus, checkpoint_path, model_path, filenam
     else:
         state = {
             "epoch": epoch,
-            "state_dict": model.state_dict()
+            "state_dict": model.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict()
             #"valid_arg": valid_args
             #"valid_model_ACER": valid_model_ACER,
             #"valid_model_EER": valid_model_EER,
@@ -206,9 +207,10 @@ def save_checkpoint(save_list, model, gpus, checkpoint_path, model_path, filenam
             #"valid_model_fscore": valid_model_fscore,
             #"valid_model_conf_matrix": valid_model_conf_matrix
         }
-    filepath = checkpoint_path + filename
+    #filepath = checkpoint_path + filename
+    filepath = model_path + 'model' + '_' + str(epoch) + '.pth.tar'
     torch.save(state, filepath)
-    shutil.copy(filepath, model_path + 'model' + '_' + str(epoch) + '.pth.tar')
+    #shutil.copy(filepath, model_path + 'model' + '_' + str(epoch) + '.pth.tar')
 
 
 def zero_param_grad(params):
